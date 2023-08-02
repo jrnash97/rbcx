@@ -9,3 +9,4 @@ edition = "2021"
 [dependencies]
 audiotags = "0.4.1"
 clap = "4.3.19"
+zip = "0.6.6"

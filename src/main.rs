@@ -1,51 +1,67 @@
 use clap::{Arg, ArgAction, ArgMatches, Command};
-use std::fs;
-// use std::path::PathBuf;
+use std::{fs, process::exit};
 
 struct Rbcx {
-    matches: ArgMatches,
+    filename: String,
+    genre: Option<String>,
+    compilation: bool,
+    manual: bool,
 }
 
 impl Rbcx {
-    fn new() -> Rbcx {
-        Rbcx {
-            matches: Command::new("rbcx")
-                .version("0.1.0")
-                .author("James Nash <jrnash.dev@gmail.com>")
-                .arg(Arg::new("name").required(true))
-                .arg(Arg::new("genre").short('g').long("genre"))
-                .arg(
-                    Arg::new("compilation")
-                        .short('c')
-                        .long("compilation")
-                        .action(ArgAction::SetTrue),
-                )
-                .arg(
-                    Arg::new("manual")
-                        .short('m')
-                        .long("manual")
-                        .action(ArgAction::SetTrue),
-                )
-                .get_matches(),
+    fn new(matches: &ArgMatches) -> Rbcx {
+        let r = Rbcx {
+            filename: matches.get_one::<String>("name").unwrap().to_owned(),
+            genre: matches
+                .get_one::<String>("genre")
+                .map(|genre| genre.to_owned()),
+            compilation: matches.get_flag("compilation"),
+            manual: matches.get_flag("manual"),
+        };
+
+        if let Err(error) = Rbcx::check_is_archive(&r.filename) {
+            println!("{}", error);
+            exit(1);
+        };
+
+        r
+    }
+
+    fn check_is_archive(filename: &String) -> Result<(), &str> {
+        let length = filename.len();
+        if &filename[(length - 4)..] != ".zip" {
+            return Err("File must be of type .zip");
         }
+        Ok(())
     }
 }
 
 fn main() {
-    let rbcx = Rbcx::new();
-    let (filename, genre, is_compilation, is_manual) = get_args(&rbcx.matches);
+    let matches = Command::new("rbcx")
+        .version("0.1.0")
+        .author("James Nash <jrnash.dev@gmail.com>")
+        .arg(Arg::new("name").required(true))
+        .arg(Arg::new("genre").short('g').long("genre"))
+        .arg(
+            Arg::new("compilation")
+                .short('c')
+                .long("compilation")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("manual")
+                .short('m')
+                .long("manual")
+                .action(ArgAction::SetTrue),
+        )
+        .get_matches();
 
-    println!("name: {}", filename);
-    println!("genre: {:?}", genre);
-    println!("compilation: {}", is_compilation);
-    println!("manual: {}", is_manual);
-}
+    let rbcx = Rbcx::new(&matches);
 
-fn get_args(matches: &ArgMatches) -> (&String, Option<&String>, bool, bool) {
-    let filename = matches.get_one::<String>("name").expect("required");
-    let genre = matches.get_one::<String>("genre");
-    let manual = matches.get_flag("manual");
-    let compilation = matches.get_flag("compilation");
+    drop(matches);
 
-    (filename, genre, compilation, manual)
+    println!("name: {}", rbcx.filename);
+    println!("genre: {:?}", rbcx.genre);
+    println!("compilation: {}", rbcx.compilation);
+    println!("manual: {}", rbcx.manual);
 }
