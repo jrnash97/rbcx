@@ -1,40 +1,9 @@
-use clap::{Arg, ArgAction, ArgMatches, Command};
+use clap::{Arg, ArgAction, Command};
+use config::Config;
+#[allow(unused_imports)]
 use std::{fs, process::exit};
 
-struct Rbcx {
-    filename: String,
-    genre: Option<String>,
-    compilation: bool,
-    manual: bool,
-}
-
-impl Rbcx {
-    fn new(matches: &ArgMatches) -> Rbcx {
-        let r = Rbcx {
-            filename: matches.get_one::<String>("name").unwrap().to_owned(),
-            genre: matches
-                .get_one::<String>("genre")
-                .map(|genre| genre.to_owned()),
-            compilation: matches.get_flag("compilation"),
-            manual: matches.get_flag("manual"),
-        };
-
-        if let Err(error) = Rbcx::check_is_archive(&r.filename) {
-            println!("{}", error);
-            exit(1);
-        };
-
-        r
-    }
-
-    fn check_is_archive(filename: &String) -> Result<(), &str> {
-        let length = filename.len();
-        if &filename[(length - 4)..] != ".zip" {
-            return Err("File must be of type .zip");
-        }
-        Ok(())
-    }
-}
+mod config;
 
 fn main() {
     let matches = Command::new("rbcx")
@@ -56,12 +25,18 @@ fn main() {
         )
         .get_matches();
 
-    let rbcx = Rbcx::new(&matches);
+    let config = match Config::new(matches) {
+        Ok(config) => config,
+        Err(e) => {
+            print!("{}", e);
+            exit(1);
+        }
+    };
 
-    drop(matches);
-
-    println!("name: {}", rbcx.filename);
-    println!("genre: {:?}", rbcx.genre);
-    println!("compilation: {}", rbcx.compilation);
-    println!("manual: {}", rbcx.manual);
+    println!("name: {}", config.filename());
+    println!("artist: {}", config.artist());
+    println!("album: {}", config.album());
+    println!("genre: {:?}", config.genre());
+    println!("compilation: {}", config.is_compilation());
+    println!("manual: {}", config.is_manual());
 }
