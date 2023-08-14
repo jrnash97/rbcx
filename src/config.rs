@@ -1,5 +1,5 @@
 use clap::ArgMatches;
-use std::process::exit;
+use std::io::*;
 
 pub struct Config {
     filepath: String,
@@ -11,12 +11,9 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(matches: ArgMatches) -> Result<Config, String> {
+    pub fn new(matches: ArgMatches) -> Result<Config> {
         let filepath = matches.get_one::<String>("name").unwrap().to_owned();
-        if let Err(error) = Config::check_is_archive(&filepath) {
-            println!("{}", error);
-            exit(1);
-        };
+        Config::check_is_archive(&filepath)?;
         let (artist, album) = Config::artist_album(&filepath)?;
         let genre = matches
             .get_one::<String>("genre")
@@ -36,16 +33,19 @@ impl Config {
         Ok(r)
     }
 
-    fn check_is_archive(filename: &String) -> Result<(), &str> {
+    fn check_is_archive(filename: &String) -> Result<()> {
         let length = filename.len();
         if &filename[(length - 4)..] != ".zip" {
-            return Err("File must be of type .zip");
+            Result::Err(Error::new(
+                ErrorKind::Unsupported,
+                "File must be of type .zip",
+            ))?;
         }
         Ok(())
     }
 
     // Getters to access configuration details
-    pub fn filename(&self) -> &String {
+    pub fn filepath(&self) -> &String {
         &self.filepath
     }
 
@@ -69,11 +69,12 @@ impl Config {
         self.manual
     }
 
-    fn artist_album(filepath: &String) -> Result<(String, String), &str> {
+    fn artist_album(filepath: &String) -> Result<(String, String)> {
         let filename = filepath.split('\\').last().unwrap_or(filepath);
-        let split = filename
-            .find(" - ")
-            .ok_or("Cannot find valid album or artist name. Consider using manual input -m")?;
+        let split = filename.find(" - ").ok_or(Error::new(
+            ErrorKind::InvalidInput,
+            "Cannot find valid album or artist name. Consider using manual input -m",
+        ))?;
         let artist = String::from(&filename[..split]);
         let album = String::from(&filename[split + 3..filename.len() - 4]);
         Ok((artist, album))
