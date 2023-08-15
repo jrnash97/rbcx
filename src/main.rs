@@ -1,11 +1,11 @@
 use clap::{Arg, ArgAction, Command};
 use config::Config;
-use std::ffi::OsString;
 use std::fs;
 use std::io::*;
 use std::path::PathBuf;
 
 mod config;
+mod file_handler;
 
 fn main() -> Result<()> {
     let matches = Command::new("rbcx")
@@ -42,17 +42,36 @@ fn main() -> Result<()> {
     if let Err(e) = zip_extract::extract(Cursor::new(archive), &target_path, true) {
         return Err(Error::new(ErrorKind::Other, e));
     };
-
     let file_dir = fs::read_dir(config.album())?;
-    let file_iter = file_dir.enumerate();
-    for (_i, file) in file_iter {
-        rename_item(&file?.file_name(), &config)?;
+    for entry in file_dir {
+        let f_name = entry?.file_name();
+        rename_item(f_name.to_str().unwrap(), &config)?;
+        if let (Some(genre), s) = (config.genre(), f_name.to_str().unwrap()) {
+            add_genre_info(s, genre)?
+        }
     }
-
     Ok(())
 }
 
-#[allow(unused_variables)]
-fn rename_item(entry: &OsString, config: &Config) -> Result<()> {
-    todo!();
+fn rename_item(entry: &str, config: &Config) -> Result<()> {
+    let mut rmv_str = "".to_string();
+    rmv_str = rmv_str + config.artist() + " - " + config.album() + " - ";
+
+    let mut par_str = ".\\".to_string();
+    par_str = par_str + config.album() + "\\" + entry;
+    let entry = &par_str[..];
+
+    if is_valid(entry) {
+        fs::rename(entry, entry.replace(&rmv_str[..], ""))?;
+    }
+    Ok(())
+}
+
+fn add_genre_info(entry: &str, genre: &String) -> Result<()> {
+    println!("{entry} - {genre}");
+    Ok(())
+}
+
+fn is_valid(file_name: &str) -> bool {
+    file_name.ends_with(".mp3") || file_name.ends_with(".wav") || file_name.ends_with(".flac")
 }
