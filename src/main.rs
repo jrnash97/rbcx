@@ -1,11 +1,10 @@
+use crate::config::{Config, ConfigBuilder};
 use audiotags::Tag;
 use clap::{Arg, ArgAction, Command};
-use config::Config;
+use console::Style;
 use std::fs;
 use std::io::*;
 use std::path::PathBuf;
-
-use crate::config::ConfigBuilder;
 
 mod config;
 mod file_handler;
@@ -36,20 +35,32 @@ fn main() -> Result<()> {
     } else {
         // If manual input is specified we use a builder pattern to create a track config
         let mut builder = ConfigBuilder::new(matches);
-
+        let style = Style::new().cyan().bold();
         let mut album = String::new();
-        println!("Album Name: ");
+        print!("{} ", style.apply_to("\nAlbum Name:"));
+        let _ = stdout().flush();
         stdin()
             .read_line(&mut album)
             .expect("No album name provided");
         builder.add_album_name(album.trim());
 
         let mut artist = String::new();
-        println!("Album Artist: ");
+        print!("{} ", style.apply_to("Album Artist:"));
+        let _ = stdout().flush();
         stdin()
             .read_line(&mut artist)
             .expect("Not artist name provided");
         builder.add_artist(artist.trim());
+
+        let mut genre = String::new();
+        print!("{} ", style.apply_to("Genre:"));
+        let _ = stdout().flush();
+        stdin().read_line(&mut genre).expect("Unable to read genre");
+        if !genre.trim().is_empty() {
+            builder.add_genre(Some(genre.trim()));
+        } else {
+            builder.add_genre(None::<String>);
+        }
 
         builder.build()
     };

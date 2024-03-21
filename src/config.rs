@@ -75,12 +75,12 @@ impl ConfigBuilder {
         }
     }
 
-    pub fn build(&self) -> Config {
+    pub fn build(self) -> Config {
         Config {
-            filepath: self.filepath.clone(),
-            album: self.album.clone().unwrap(),
-            artist: self.artist.clone().unwrap(),
-            genre: self.genre.clone(),
+            filepath: self.filepath,
+            album: self.album.unwrap(),
+            artist: self.artist.unwrap(),
+            genre: self.genre,
             compilation: self.compilation,
         }
     }
@@ -93,8 +93,8 @@ impl ConfigBuilder {
         self.artist = Some(artist.into());
     }
 
-    pub fn add_genre(&mut self, genre: Option<String>) {
-        self.genre = genre;
+    pub fn add_genre(&mut self, genre: Option<impl Into<String>>) {
+        self.genre = genre.map(|genre| genre.into());
     }
 }
 
