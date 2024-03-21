@@ -4,6 +4,8 @@ use std::fs;
 use std::io::*;
 use std::path::PathBuf;
 
+use crate::config::ConfigBuilder;
+
 mod config;
 mod file_handler;
 
@@ -27,16 +29,32 @@ fn main() -> Result<()> {
         )
         .get_matches();
 
-    // Consume matches here as they are no longer needed if our Config constructs successfully
-    let config = Config::new(matches)?;
+    let config: Config = if !matches.get_flag("manual") {
+        // Consume matches here as they are no longer needed if our Config constructs successfully
+        Config::new(matches)?
+    } else {
+        // If manual input is specified we use a builder pattern to create a track config
+        let mut builder = ConfigBuilder::new(matches);
 
-    println!("name: {}", config.filepath());
-    println!("artist: {}", config.artist());
-    println!("album: {}", config.album());
-    println!("genre: {:?}", config.genre());
-    println!("compilation: {}", config.is_compilation());
-    println!("manual: {}", config.is_manual());
+        let mut album = String::new();
+        println!("Album Name: ");
+        stdin()
+            .read_line(&mut album)
+            .expect("No album name provided");
+        builder.add_album_name(album.trim());
 
+        let mut artist = String::new();
+        println!("Album Artist: ");
+        stdin()
+            .read_line(&mut artist)
+            .expect("Not artist name provided");
+        builder.add_artist(artist.trim());
+
+        builder.build()
+    };
+    println!("{:?}", config);
+
+    return Ok(());
     let archive: Vec<u8> = fs::read(config.filepath())?;
     let target_path = PathBuf::from(config.album());
     if let Err(e) = zip_extract::extract(Cursor::new(archive), &target_path, true) {

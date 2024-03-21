@@ -6,7 +6,7 @@ pub struct FileHandler {
 }
 
 impl FileHandler {
-    fn new(dir: ReadDir, config: &Config) -> FileHandler {
+    pub fn new(dir: ReadDir, config: &Config) -> Self {
         todo!()
     }
 }
