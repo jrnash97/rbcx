@@ -85,6 +85,10 @@ impl ConfigBuilder {
         }
     }
 
+    pub fn genre(&self) -> Option<String> {
+        self.genre.clone()
+    }
+
     pub fn add_album_name(&mut self, album: impl Into<String>) {
         self.album = Some(album.into());
     }
@@ -101,8 +105,7 @@ impl ConfigBuilder {
 // helper functions
 
 fn check_is_archive(filepath: &String) -> Result<()> {
-    let length = filepath.len();
-    if &filepath[(length - 4)..] != ".zip" {
+    if !filepath.ends_with(".zip") {
         Result::Err(Error::new(
             std::io::ErrorKind::Unsupported,
             "File must be of type .zip",
@@ -115,7 +118,7 @@ fn split_artist_and_album(filepath: &String) -> Result<(String, String)> {
     let filename = filepath.split('\\').last().unwrap_or(filepath);
     let split = filename.find(" - ").ok_or(Error::new(
         std::io::ErrorKind::InvalidInput,
-        "Cannot find valid album orartist name. Consider using manual input -m",
+        "Cannot find valid album or artist name. Consider using manual input -m",
     ))?;
     let artist = String::from(&filename[..split]);
     let album = String::from(&filename[split + 3..filename.len() - 4]);

@@ -1,7 +1,9 @@
 use crate::config::{Config, ConfigBuilder};
+
 use audiotags::Tag;
 use clap::{Arg, ArgAction, Command};
 use console::Style;
+use dialoguer::Input;
 use std::fs;
 use std::io::*;
 use std::path::PathBuf;
@@ -36,26 +38,26 @@ fn main() -> Result<()> {
         // If manual input is specified we use a builder pattern to create a track config
         let mut builder = ConfigBuilder::new(matches);
         let style = Style::new().cyan().bold();
-        let mut album = String::new();
-        print!("{} ", style.apply_to("\nAlbum Name:"));
-        let _ = stdout().flush();
-        stdin()
-            .read_line(&mut album)
-            .expect("No album name provided");
+
+        let album: String = Input::new()
+            .with_prompt(format!("{}", style.apply_to("\nAlbum Name")))
+            .interact_text()
+            .unwrap();
         builder.add_album_name(album.trim());
 
-        let mut artist = String::new();
-        print!("{} ", style.apply_to("Album Artist:"));
-        let _ = stdout().flush();
-        stdin()
-            .read_line(&mut artist)
-            .expect("Not artist name provided");
+        let artist: String = Input::new()
+            .with_prompt(format!("{}", style.apply_to("Album Artist")))
+            .interact_text()
+            .unwrap();
         builder.add_artist(artist.trim());
 
-        let mut genre = String::new();
-        print!("{} ", style.apply_to("Genre:"));
-        let _ = stdout().flush();
-        stdin().read_line(&mut genre).expect("Unable to read genre");
+        let genre: String = Input::new()
+            .with_prompt(format!("{} (optional)", style.apply_to("Genre")))
+            .allow_empty(true)
+            .with_initial_text(builder.genre().unwrap_or("".to_string()))
+            .interact_text()
+            .unwrap();
+
         if !genre.trim().is_empty() {
             builder.add_genre(Some(genre.trim()));
         } else {
