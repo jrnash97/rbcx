@@ -1,3 +1,4 @@
+use audiotags::Tag;
 use clap::{Arg, ArgAction, Command};
 use config::Config;
 use std::fs;
@@ -30,12 +31,14 @@ fn main() -> Result<()> {
     // Consume matches here as they are no longer needed if our Config constructs successfully
     let config = Config::new(matches)?;
 
+    /*
     println!("name: {}", config.filepath());
     println!("artist: {}", config.artist());
     println!("album: {}", config.album());
     println!("genre: {:?}", config.genre());
     println!("compilation: {}", config.is_compilation());
     println!("manual: {}", config.is_manual());
+    */
 
     let archive: Vec<u8> = fs::read(config.filepath())?;
     let target_path = PathBuf::from(config.album());
@@ -45,10 +48,13 @@ fn main() -> Result<()> {
     let file_dir = fs::read_dir(config.album())?;
     for entry in file_dir {
         let f_name = entry?.file_name();
-        rename_item(f_name.to_str().unwrap(), &config)?;
+        if !is_valid(f_name.to_str().unwrap()) {
+            continue;
+        }
         if let (Some(genre), s) = (config.genre(), f_name.to_str().unwrap()) {
             add_genre_info(s, genre)?
         }
+        rename_item(f_name.to_str().unwrap(), &config)?;
     }
     Ok(())
 }
@@ -61,14 +67,15 @@ fn rename_item(entry: &str, config: &Config) -> Result<()> {
     par_str = par_str + config.album() + "\\" + entry;
     let entry = &par_str[..];
 
-    if is_valid(entry) {
-        fs::rename(entry, entry.replace(&rmv_str[..], ""))?;
-    }
+    fs::rename(entry, entry.replace(&rmv_str[..], ""))?;
     Ok(())
 }
 
-fn add_genre_info(entry: &str, genre: &String) -> Result<()> {
-    println!("{entry} - {genre}");
+fn add_genre_info(entry: &str, genre: &str) -> Result<()> {
+    let mut tag = Tag::new().read_from_path(entry).unwrap();
+    tag.set_genre(genre);
+    tag.write_to_path(entry)
+        .expect("Failed to save genre information");
     Ok(())
 }
 
